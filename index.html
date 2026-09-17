@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AUX Mask Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f3f5f2;
+  --surface:#ffffff;
+  --surface-2:#eceeea;
+  --ink:#121917;
+  --ink-dim:#5c6a66;
+  --line:#d9dcd8;
+  --accent:#0f8f6c;
+  --accent-ink:#ffffff;
+  --osd-bg:#0c1210;
+  --osd-line:#193029;
+  --osd-text:#6df0b4;
+  --focus:#0f8f6c;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0d0c;
+    --surface:#141a18;
+    --surface-2:#1b2220;
+    --ink:#e8ece9;
+    --ink-dim:#8fa39c;
+    --line:#26302c;
+    --accent:#38e0a8;
+    --accent-ink:#07130f;
+    --focus:#38e0a8;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0d0c;
+  --surface:#141a18;
+  --surface-2:#1b2220;
+  --ink:#e8ece9;
+  --ink-dim:#8fa39c;
+  --line:#26302c;
+  --accent:#38e0a8;
+  --accent-ink:#07130f;
+  --focus:#38e0a8;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  padding-inline:16px;
+  padding-block:28px;
+  display:flex;
+  justify-content:center;
+}
+.page{width:100%; max-width:420px; display:flex; flex-direction:column; gap:18px;}
+
+.eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-dim); font-weight:600;}
+h1{font-size:25px; margin:3px 0 0; font-weight:700; letter-spacing:-0.01em;}
+.subtitle{color:var(--ink-dim); font-size:13.5px; margin:6px 0 0; max-width:36ch; line-height:1.45;}
+
+.osd-wrap{position:relative;}
+.osd{
+  background:var(--osd-bg);
+  border:1px solid var(--osd-line);
+  border-radius:12px;
+  padding:16px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.osd:focus-visible{outline:2px solid var(--osd-text); outline-offset:3px;}
+.osd-text{
+  font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;
+  color:var(--osd-text);
+  font-size:14px;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 0 10px rgba(109,240,180,.35);
+  word-break:break-all;
+  line-height:1.4;
+}
+.osd-copy{
+  flex-shrink:0;
+  width:32px; height:32px;
+  border-radius:8px;
+  border:1px solid var(--osd-line);
+  color:var(--osd-text);
+  display:flex; align-items:center; justify-content:center;
+}
+.toast{
+  position:fixed;
+  left:50%; bottom:calc(28px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%) translateY(6px);
+  background:var(--ink); color:var(--bg);
+  font-size:12.5px; font-weight:500;
+  padding:9px 16px; border-radius:999px;
+  opacity:0; pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+  z-index:50; white-space:nowrap;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.bar{display:flex; gap:3px;}
+.seg{flex:1; height:24px; border-radius:5px; border:1px solid var(--line); background:var(--surface-2); transition:background .15s ease, border-color .15s ease;}
+.seg.on{background:var(--accent); border-color:var(--accent);}
+.bar-caption{display:flex; justify-content:space-between; gap:8px; font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace; font-size:11px; color:var(--ink-dim); font-variant-numeric:tabular-nums;}
+.bar-caption span:last-child{text-align:right;}
+.bar-caption span:nth-child(2){flex:1; text-align:center;}
+
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px;}
+.panel-label{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-dim); font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+.panel-label b{color:var(--ink); font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace; letter-spacing:0; text-transform:none; font-size:12px; font-variant-numeric:tabular-nums;}
+.chip-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px;}
+.chip{
+  all:unset;
+  box-sizing:border-box;
+  text-align:center;
+  padding:10px 4px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  color:var(--ink);
+  font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .12s ease, color .12s ease, border-color .12s ease;
+}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:700;}
+.chip:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+
+.hint{font-size:12px; color:var(--ink-dim); text-align:center; line-height:1.55; margin:0;}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">MSP &middot; CHANNEL OVERRIDE</div>
+    <h1>AUX Mask Panel</h1>
+    <p class="subtitle">Pick the ARM and ANGLE aux inputs &mdash; CH1&ndash;4 stay active always.</p>
+  </header>
+
+  <div class="osd-wrap">
+    <div class="osd" id="osd" role="button" tabindex="0" aria-label="Copy command to clipboard">
+      <span class="osd-text" id="readout">set msp_override_channels_mask = 63</span>
+      <span class="osd-copy" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </span>
+    </div>
+    <div class="toast" id="toast">Copied</div>
+  </div>
+
+  <div>
+    <div class="bar" id="bar">
+      <div class="seg on" id="seg-1"></div>
+      <div class="seg on" id="seg-2"></div>
+      <div class="seg on" id="seg-3"></div>
+      <div class="seg on" id="seg-4"></div>
+      <div class="seg on" id="seg-5"></div>
+      <div class="seg on" id="seg-6"></div>
+      <div class="seg" id="seg-7"></div>
+      <div class="seg" id="seg-8"></div>
+      <div class="seg" id="seg-9"></div>
+      <div class="seg" id="seg-10"></div>
+      <div class="seg" id="seg-11"></div>
+      <div class="seg" id="seg-12"></div>
+      <div class="seg" id="seg-13"></div>
+      <div class="seg" id="seg-14"></div>
+      <div class="seg" id="seg-15"></div>
+      <div class="seg" id="seg-16"></div>
+    </div>
+    <div class="bar-caption">
+      <span>CH1</span>
+      <span id="capMid">base &middot; ARM CH5 &middot; ANGLE CH6</span>
+      <span>CH16</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label"><span>ARM &middot; aux input</span><b id="armLabel">AUX1 &rarr; CH5</b></div>
+    <div class="chip-grid" id="armGrid" role="group" aria-label="ARM aux selection">
+      <button class="chip" id="arm-1" data-aux="1" aria-pressed="true">AUX1</button>
+      <button class="chip" id="arm-2" data-aux="2" aria-pressed="false">AUX2</button>
+      <button class="chip" id="arm-3" data-aux="3" aria-pressed="false">AUX3</button>
+      <button class="chip" id="arm-4" data-aux="4" aria-pressed="false">AUX4</button>
+      <button class="chip" id="arm-5" data-aux="5" aria-pressed="false">AUX5</button>
+      <button class="chip" id="arm-6" data-aux="6" aria-pressed="false">AUX6</button>
+      <button class="chip" id="arm-7" data-aux="7" aria-pressed="false">AUX7</button>
+      <button class="chip" id="arm-8" data-aux="8" aria-pressed="false">AUX8</button>
+      <button class="chip" id="arm-9" data-aux="9" aria-pressed="false">AUX9</button>
+      <button class="chip" id="arm-10" data-aux="10" aria-pressed="false">AUX10</button>
+      <button class="chip" id="arm-11" data-aux="11" aria-pressed="false">AUX11</button>
+      <button class="chip" id="arm-12" data-aux="12" aria-pressed="false">AUX12</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label"><span>ANGLE &middot; aux input</span><b id="angleLabel">AUX2 &rarr; CH6</b></div>
+    <div class="chip-grid" id="angleGrid" role="group" aria-label="ANGLE aux selection">
+      <button class="chip" id="angle-1" data-aux="1" aria-pressed="false">AUX1</button>
+      <button class="chip" id="angle-2" data-aux="2" aria-pressed="true">AUX2</button>
+      <button class="chip" id="angle-3" data-aux="3" aria-pressed="false">AUX3</button>
+      <button class="chip" id="angle-4" data-aux="4" aria-pressed="false">AUX4</button>
+      <button class="chip" id="angle-5" data-aux="5" aria-pressed="false">AUX5</button>
+      <button class="chip" id="angle-6" data-aux="6" aria-pressed="false">AUX6</button>
+      <button class="chip" id="angle-7" data-aux="7" aria-pressed="false">AUX7</button>
+      <button class="chip" id="angle-8" data-aux="8" aria-pressed="false">AUX8</button>
+      <button class="chip" id="angle-9" data-aux="9" aria-pressed="false">AUX9</button>
+      <button class="chip" id="angle-10" data-aux="10" aria-pressed="false">AUX10</button>
+      <button class="chip" id="angle-11" data-aux="11" aria-pressed="false">AUX11</button>
+      <button class="chip" id="angle-12" data-aux="12" aria-pressed="false">AUX12</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var state = { arm: 1, angle: 2 };
+  var readout = document.getElementById('readout');
+
+  function computeMask(){
+    var v = 0x0F;
+    v |= 1 << (state.arm + 4 - 1);
+    v |= 1 << (state.angle + 4 - 1);
+    return v;
+  }
+
+  function render(){
+    var mask = computeMask();
+    readout.textContent = 'set msp_override_channels_mask = ' + mask;
+
+    for (var ch = 1; ch <= 16; ch++){
+      var seg = document.getElementById('seg-' + ch);
+      var on = (mask & (1 << (ch - 1))) !== 0;
+      seg.classList.toggle('on', on);
+    }
+
+    document.getElementById('capMid').textContent = 'ARM CH' + (state.arm + 4) + ' · ANGLE CH' + (state.angle + 4);
+    document.getElementById('armLabel').textContent = 'AUX' + state.arm + ' → CH' + (state.arm + 4);
+    document.getElementById('angleLabel').textContent = 'AUX' + state.angle + ' → CH' + (state.angle + 4);
+
+    Array.prototype.forEach.call(document.querySelectorAll('#armGrid .chip'), function(btn){
+      btn.setAttribute('aria-pressed', String(Number(btn.dataset.aux) === state.arm));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#angleGrid .chip'), function(btn){
+      btn.setAttribute('aria-pressed', String(Number(btn.dataset.aux) === state.angle));
+    });
+  }
+
+  document.getElementById('armGrid').addEventListener('click', function(e){
+    var btn = e.target.closest('.chip'); if (!btn) return;
+    state.arm = Number(btn.dataset.aux); render();
+  });
+  document.getElementById('angleGrid').addEventListener('click', function(e){
+    var btn = e.target.closest('.chip'); if (!btn) return;
+    state.angle = Number(btn.dataset.aux); render();
+  });
+
+  var toastTimer = null;
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1400);
+  }
+
+  function copyReadout(){
+    var text = readout.textContent;
+    function fallback(){
+      try{
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('Copied');
+      }catch(err){
+        showToast('Copy failed - select manually');
+      }
+    }
+    try{
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ showToast('Copied'); }).catch(fallback);
+      } else {
+        fallback();
+      }
+    }catch(err){
+      fallback();
+    }
+  }
+
+  var osd = document.getElementById('osd');
+  osd.addEventListener('click', copyReadout);
+  osd.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); copyReadout(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
