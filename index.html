@@ -135,6 +135,7 @@ h1{font-size:25px; margin:3px 0 0; font-weight:700; letter-spacing:-0.01em;}
 }
 .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:700;}
 .chip:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+.chip:disabled{opacity:.35; cursor:not-allowed;}
 
 .hint{font-size:12px; color:var(--ink-dim); text-align:center; line-height:1.55; margin:0;}
 
@@ -192,7 +193,7 @@ h1{font-size:25px; margin:3px 0 0; font-weight:700; letter-spacing:-0.01em;}
     <div class="panel-label"><span>ARM &middot; aux input</span><b id="armLabel">AUX1 &rarr; CH5</b></div>
     <div class="chip-grid" id="armGrid" role="group" aria-label="ARM aux selection">
       <button class="chip" id="arm-1" data-aux="1" aria-pressed="true">AUX1</button>
-      <button class="chip" id="arm-2" data-aux="2" aria-pressed="false">AUX2</button>
+      <button class="chip" id="arm-2" data-aux="2" aria-pressed="false" disabled>AUX2</button>
       <button class="chip" id="arm-3" data-aux="3" aria-pressed="false">AUX3</button>
       <button class="chip" id="arm-4" data-aux="4" aria-pressed="false">AUX4</button>
       <button class="chip" id="arm-5" data-aux="5" aria-pressed="false">AUX5</button>
@@ -209,7 +210,7 @@ h1{font-size:25px; margin:3px 0 0; font-weight:700; letter-spacing:-0.01em;}
   <div class="panel">
     <div class="panel-label"><span>ANGLE &middot; aux input</span><b id="angleLabel">AUX2 &rarr; CH6</b></div>
     <div class="chip-grid" id="angleGrid" role="group" aria-label="ANGLE aux selection">
-      <button class="chip" id="angle-1" data-aux="1" aria-pressed="false">AUX1</button>
+      <button class="chip" id="angle-1" data-aux="1" aria-pressed="false" disabled>AUX1</button>
       <button class="chip" id="angle-2" data-aux="2" aria-pressed="true">AUX2</button>
       <button class="chip" id="angle-3" data-aux="3" aria-pressed="false">AUX3</button>
       <button class="chip" id="angle-4" data-aux="4" aria-pressed="false">AUX4</button>
@@ -252,19 +253,23 @@ h1{font-size:25px; margin:3px 0 0; font-weight:700; letter-spacing:-0.01em;}
     document.getElementById('angleLabel').textContent = 'AUX' + state.angle + ' → CH' + (state.angle + 4);
 
     Array.prototype.forEach.call(document.querySelectorAll('#armGrid .chip'), function(btn){
-      btn.setAttribute('aria-pressed', String(Number(btn.dataset.aux) === state.arm));
+      var aux = Number(btn.dataset.aux);
+      btn.setAttribute('aria-pressed', String(aux === state.arm));
+      btn.disabled = (aux === state.angle);
     });
     Array.prototype.forEach.call(document.querySelectorAll('#angleGrid .chip'), function(btn){
-      btn.setAttribute('aria-pressed', String(Number(btn.dataset.aux) === state.angle));
+      var aux = Number(btn.dataset.aux);
+      btn.setAttribute('aria-pressed', String(aux === state.angle));
+      btn.disabled = (aux === state.arm);
     });
   }
 
   document.getElementById('armGrid').addEventListener('click', function(e){
-    var btn = e.target.closest('.chip'); if (!btn) return;
+    var btn = e.target.closest('.chip'); if (!btn || btn.disabled) return;
     state.arm = Number(btn.dataset.aux); render();
   });
   document.getElementById('angleGrid').addEventListener('click', function(e){
-    var btn = e.target.closest('.chip'); if (!btn) return;
+    var btn = e.target.closest('.chip'); if (!btn || btn.disabled) return;
     state.angle = Number(btn.dataset.aux); render();
   });
 
